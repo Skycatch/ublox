@@ -1030,6 +1030,31 @@ class UbloxFirmware8 : public UbloxFirmware7Plus<ublox_msgs::NavPVT> {
  *  but allows for future expansion of functionality
  */
 class UbloxFirmware9 : public UbloxFirmware8 {
+  public:
+
+  void subscribe();
+
+  private:
+  /**
+   * @brief Publish the fix and call the fix diagnostic updater.
+   *
+   * @details Also updates the last known position and publishes the NavPosLLH
+   * message if publishing is enabled.
+   * @param m the message to process
+   */
+  void callbackNavPosLlh(const ublox_msgs::NavPOSLLH& m);
+
+  //! The last received navigation position
+  ublox_msgs::NavPOSLLH last_nav_pos_;
+  //! The last received navigation velocity
+  ublox_msgs::NavVELNED last_nav_vel_;
+  //! The last received num SVs used
+  ublox_msgs::NavSOL last_nav_sol_;
+  //! The last NavSatFix based on last_nav_pos_
+  sensor_msgs::NavSatFix fix_;
+  //! The last Twist based on last_nav_vel_
+  geometry_msgs::TwistWithCovarianceStamped velocity_;
+
 };
 
 /**

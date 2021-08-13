@@ -1231,6 +1231,85 @@ void UbloxFirmware8::subscribe() {
         publish<ublox_msgs::RxmRTCM>, _1, "rxmrtcm"), kSubscribeRate);
 }
 
+
+void UbloxFirmware9::subscribe() {
+
+  ROS_INFO("Subscribing to F9P NAV-HPPOSLLH");
+
+  // Whether to publish Nav PVT messages
+  //nh->param("publish/nav/pvt", enabled["nav_pvt"], enabled["nav"]);
+  // Subscribe to Nav PVT
+  //gps.subscribe<ublox_msgs::NavPVT>(
+  //  boost::bind(&UbloxFirmware7Plus::callbackNavPvt, this, _1), kSubscribeRate);
+  nh->param("publish/nav/posllh", enabled["nav_posllh"], enabled["nav"]);
+  gps.subscribe<ublox_msgs::NavPOSLLH>(boost::bind(
+      &UbloxFirmware9::callbackNavPosLlh, this, _1), kSubscribeRate);
+
+
+  // Subscribe to Nav SAT messages
+  nh->param("publish/nav/sat", enabled["nav_sat"], enabled["nav"]);
+  if (enabled["nav_sat"])
+    gps.subscribe<ublox_msgs::NavSAT>(boost::bind(
+        publish<ublox_msgs::NavSAT>, _1, "navsat"), kNavSvInfoSubscribeRate);
+
+  // Subscribe to Mon HW
+  nh->param("publish/mon/hw", enabled["mon_hw"], enabled["mon"]);
+  if (enabled["mon_hw"])
+    gps.subscribe<ublox_msgs::MonHW>(boost::bind(
+        publish<ublox_msgs::MonHW>, _1, "monhw"), kSubscribeRate);
+
+  // Subscribe to RTCM messages
+  nh->param("publish/rxm/rtcm", enabled["rxm_rtcm"], enabled["rxm"]);
+  if (enabled["rxm_rtcm"])
+    gps.subscribe<ublox_msgs::RxmRTCM>(boost::bind(
+        publish<ublox_msgs::RxmRTCM>, _1, "rxmrtcm"), kSubscribeRate);
+}
+
+void UbloxFirmware9::callbackNavPosLlh(const ublox_msgs::NavPOSLLH& m) {
+  if(enabled["nav_posllh"]) {
+    static ros::Publisher publisher =
+        nh->advertise<ublox_msgs::NavPOSLLH>("navposllh", kROSQueueSize);
+    publisher.publish(m);
+  }
+
+
+  // Position message
+  static ros::Publisher fixPublisher =
+      nh->advertise<sensor_msgs::NavSatFix>("fix", kROSQueueSize);
+  if (m.iTOW == last_nav_vel_.iTOW)
+    fix_.header.stamp = velocity_.header.stamp; // use last timestamp
+  else
+    fix_.header.stamp = ros::Time::now(); // new timestamp
+
+  fix_.header.frame_id = frame_id;
+  fix_.latitude = m.lat * 1e-7 + m.latHp * 1e-9;
+  fix_.longitude = m.lon * 1e-7 + m.lonHp * 1e-9;
+  fix_.altitude = m.height * 1e-3 + m.heightHp * 1e-4;
+
+
+  if (last_nav_sol_.gpsFix >= last_nav_sol_.GPS_2D_FIX)
+    fix_.status.status = fix_.status.STATUS_FIX;
+  else
+    fix_.status.status = fix_.status.STATUS_NO_FIX;
+
+  // Convert from 0.1mm to m
+  const double varH = pow(m.hAcc / 10000.0, 2);
+  const double varV = pow(m.vAcc / 10000.0, 2);
+
+  fix_.position_covariance[0] = varH;
+  fix_.position_covariance[4] = varH;
+  fix_.position_covariance[8] = varV;
+  fix_.position_covariance_type =
+      sensor_msgs::NavSatFix::COVARIANCE_TYPE_DIAGONAL_KNOWN;
+
+  fix_.status.service = fix_.status.SERVICE_GPS;
+  fixPublisher.publish(fix_);
+  last_nav_pos_ = m;
+  //  update diagnostics
+  freq_diag->diagnostic->tick(fix_.header.stamp);
+  updater->update();
+}
+
 //
 // Raw Data Products
 //

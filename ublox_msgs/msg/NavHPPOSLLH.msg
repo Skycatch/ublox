@@ -1,5 +1,5 @@
-# NAV-POSLLH (0x01 0x02)
-# Geodetic Position Solution
+# NAV-HPPOSLLH (0x01 0x14)
+# High Precision Geodetic Position Solution
 #
 # See important comments concerning validity of position given in section
 # Navigation Output Filters.
@@ -8,24 +8,11 @@
 # message CFG-DAT.
 #
 
-#uint8 CLASS_ID = 1
-#uint8 MESSAGE_ID = 2
-
-#uint32 iTOW             # GPS Millisecond Time of Week [ms]
-
-#int32 lon               # Longitude [deg / 1e-7]
-#int32 lat               # Latitude [deg / 1e-7]
-#int32 height            # Height above Ellipsoid [mm]
-#int32 hMSL              # Height above mean sea level [mm]
-#uint32 hAcc             # Horizontal Accuracy Estimate [mm]
-#uint32 vAcc             # Vertical Accuracy Estimate [mm]
-
-
 uint8 CLASS_ID = 1
 uint8 MESSAGE_ID = 20
 
-uint8 version           # Version 
-uint8[3] reserved1       # Reserved
+uint8 VERSION           # Version 
+uint8[3] reserved       # Reserved
 
 uint32 iTOW             # GPS Millisecond Time of Week [ms]
 
